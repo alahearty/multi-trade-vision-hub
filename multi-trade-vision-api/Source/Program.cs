@@ -1,0 +1,57 @@
+using Amazon;
+using Amazon.SimpleEmailV2;
+using Dom;
+using LettuceEncrypt;
+using Microsoft.EntityFrameworkCore;
+
+var bld = WebApplication.CreateBuilder(args);
+bld.Services
+   .AddAuthenticationJwtBearer(o => o.SigningKey = bld.Configuration["Auth:SigningKey"])
+   .AddAuthorization()
+   .AddFastEndpoints(o => o.SourceGeneratorDiscoveredTypes.AddRange(DiscoveredTypes.All))
+   .AddJobQueues<JobRecord, JobStorageProvider>()
+   .AddSingleton<IAmazonSimpleEmailServiceV2>(
+       new AmazonSimpleEmailServiceV2Client(
+           awsAccessKeyId: bld.Configuration["Email:ApiKey"],
+           awsSecretAccessKey: bld.Configuration["Email:ApiSecret"],
+           region: RegionEndpoint.USEast1));
+
+bld.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(bld.Configuration.GetConnectionString("DefaultConnection")));
+
+if (bld.Environment.IsProduction())
+{
+    bld.Services
+       .AddLettuceEncrypt()
+       .PersistDataToDirectory(new("/home/multi_trade_vision_api/certs"), null);
+}
+else
+{
+    bld.Services.SwaggerDocument(
+        d => d.DocumentSettings =
+                 s =>
+                 {
+                     s.DocumentName = "v0";
+                     s.Version = "0.0.0";
+                 });
+}
+
+var app = bld.Build();
+
+app.UseAuthentication()
+   .UseAuthorization()
+   .UseFastEndpoints(c => c.Errors.UseProblemDetails());
+
+app.UseJobQueues(
+    o =>
+    {
+        o.MaxConcurrency = 4;
+        o.ExecutionTimeLimit = TimeSpan.FromSeconds(20);
+    });
+
+if (!app.Environment.IsProduction())
+    app.UseSwaggerGen(uiConfig: u => u.DeActivateTryItOut());
+
+app.Run();
+
+public partial class Program;

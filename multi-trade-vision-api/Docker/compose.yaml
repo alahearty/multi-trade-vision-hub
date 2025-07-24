@@ -1,0 +1,28 @@
+services:
+  api:
+    image: sjc.vultrcr.com/multi_trade_vision_api/Api:latest
+    depends_on: 
+      - db
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - /home/multi_trade_vision_api/certs:/home/multi_trade_vision_api/certs
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+    env_file:
+    - ./secrets
+
+  db:
+    image: mongo:7.0.12
+    network_mode: host
+    restart: no
+    command: --quiet --directoryperdb --replSet RepSet
+    volumes:
+      - /home/multi_trade_vision_api/mongo:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m

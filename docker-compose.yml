@@ -3,46 +3,66 @@ services:
   frontend:
     build:
       context: ./multi-trade-vision-reactjs
+      dockerfile: Dockerfile
     ports:
-      - "602:8080"
+      - "${FRONTEND_PORT:-602}:8080"
     depends_on:
       - backend
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:6001}
+      - NODE_ENV=${NODE_ENV:-development}
     networks:
       - app-network
+    restart: unless-stopped
 
   backend:
     build:
-      context: ./multi-trade-vision-api
+      context: ./multi-trade-vision-api/Source
+      dockerfile: Dockerfile
     ports:
-      - "6001:8080"
+      - "${BACKEND_PORT:-6001}:8080"
     depends_on:
       - db
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
       - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
-      - API_ALLOWED_ORIGINS=${API_ALLOWED_ORIGINS}
+      - API_ALLOWED_ORIGINS=${API_ALLOWED_ORIGINS:-http://localhost:602,http://localhost:3000,http://localhost:8080}
+      - Auth__SigningKey=${Auth__SigningKey:-this_key_should_be_set_via_environment_variable_in_production}
+      - Email__FromName=${Email__FromName:-Multi Trade Vision Hub}
+      - Email__FromEmail=${Email__FromEmail:-noreply@yourdomain.com}
+      - Email__Administrator=${Email__Administrator:-admin@yourdomain.com}
+      - Email__ApiKey=${Email__ApiKey:-}
+      - Email__ApiSecret=${Email__ApiSecret:-}
+      - LettuceEncrypt__AcceptTermsOfService=${LettuceEncrypt__AcceptTermsOfService:-true}
+      - LettuceEncrypt__DomainNames=${LettuceEncrypt__DomainNames:-api.yourdomain.com}
+      - LettuceEncrypt__EmailAddress=${LettuceEncrypt__EmailAddress:-admin@yourdomain.com}
     networks:
       - app-network
+    restart: unless-stopped
 
   db:
-    container_name: ${DB_CONTAINER_NAME}
+    container_name: ${DB_CONTAINER_NAME:-multi_trade_vision_db}
     image: postgres:17
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-multi_trade_vision_api}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your_secure_password_here}
     ports:
-      - "6000:5432"
+      - "${DB_PORT:-6000}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+    driver: local
 
 networks:
   app-network:

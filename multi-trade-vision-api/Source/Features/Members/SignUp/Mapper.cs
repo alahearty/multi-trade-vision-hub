@@ -1,4 +1,4 @@
-﻿using Dom;
+using multi_trade_vision_api.Entities;
 using multi_trade_vision_api;
 
 namespace Members.Signup

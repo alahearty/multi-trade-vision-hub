@@ -1,13 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MessagePack;
+using FastEndpoints;
 
-namespace Dom
+namespace multi_trade_vision_api.Entities
 {
     [Table("JobRecords")]
-    public class JobRecord
+    public class JobRecord : IJobStorageRecord
     {
-        [Key]
+        [System.ComponentModel.DataAnnotations.Key]
         public int Id { get; set; }
         public string QueueID { get; set; }
         public Guid TrackingID { get; set; }

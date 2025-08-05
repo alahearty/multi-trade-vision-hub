@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
-using Dom;
-using MongoWebApiStarter.Notifications;
+using multi_trade_vision_api.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace multi_trade_vision_api.Notifications
 {
@@ -10,9 +10,10 @@ namespace multi_trade_vision_api.Notifications
         static readonly Regex _rx = MergeFieldRx();
         static readonly Dictionary<string, NotificationTemplate> _templates = new();
 
-        public static async Task Initialize()
+        public static async Task Initialize(AppDbContext dbContext)
         {
-            foreach (var t in await DB.Find<NotificationTemplate>().Match(_ => true).ExecuteAsync())
+            var templates = await dbContext.NotificationTemplates.ToListAsync();
+            foreach (var t in templates)
                 _templates.Add(t.ID, t);
         }
 
@@ -60,25 +61,26 @@ namespace multi_trade_vision_api.Notifications
             if (_missingTags.Count > 0)
                 throw new ApplicationException($"Replacements are missing for: [{string.Join(",", _missingTags.Distinct())}]");
 
-            if (SendEmail)
-            {
-                await new SendEmailMessage
-                {
-                    ToEmail = ToEmail,
-                    ToName = ToName,
-                    Subject = emailSubject!,
-                    Body = emailBody!
-                }.QueueJobAsync();
-            }
+            // Email and SMS sending commented out for VPS deployment
+            // if (SendEmail)
+            // {
+            //     await new SendEmailMessage
+            //     {
+            //         ToEmail = ToEmail,
+            //         ToName = ToName,
+            //         Subject = emailSubject!,
+            //         Body = emailBody!
+            //     }.QueueJobAsync();
+            // }
 
-            if (SendSms)
-            {
-                await new SendSmsMessage
-                {
-                    Mobile = ToMobile,
-                    Body = smsBody!
-                }.QueueJobAsync();
-            }
+            // if (SendSms)
+            // {
+            //     await new SendSmsMessage
+            //     {
+            //         Mobile = ToMobile,
+            //         Body = smsBody!
+            //     }.QueueJobAsync();
+            // }
         }
 
         string MergeFields(string input, string fieldName)

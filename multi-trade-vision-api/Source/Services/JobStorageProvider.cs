@@ -1,4 +1,4 @@
-﻿using Dom;
+﻿using multi_trade_vision_api.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace multi_trade_vision_api

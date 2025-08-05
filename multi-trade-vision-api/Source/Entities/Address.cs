@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Dom
+namespace multi_trade_vision_api.Entities
 {
     [Owned]
     public class Address

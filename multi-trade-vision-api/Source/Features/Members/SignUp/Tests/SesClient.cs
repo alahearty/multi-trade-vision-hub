@@ -1,4 +1,4 @@
-﻿using Amazon.SimpleEmailV2.Model;
+using Amazon.SimpleEmailV2.Model;
 using multi_trade_vision_api;
 using multi_trade_vision_api.Tests;
 

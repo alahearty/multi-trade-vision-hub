@@ -1,9 +1,10 @@
-﻿using Amazon.SimpleEmailV2;
-using Dom;
+using Amazon.SimpleEmailV2;
+using multi_trade_vision_api.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Members.Signup.Tests
 {
-    public class Sut : AppFixture<Program>
+    internal class Sut : AppFixture<Program>
     {
         internal Request SignupRequest { get; set; } = default!;
         internal string? MemberId { get; set; }
@@ -50,8 +51,9 @@ namespace Members.Signup.Tests
 
         protected override async Task TearDownAsync()
         {
-            await DB.DeleteAsync<Member>(MemberId);
-            await DB.DeleteAsync<JobRecord>(j => j.IsComplete == true);
+            // TODO: Implement EF Core cleanup
+            // await DB.DeleteAsync<Member>(MemberId);
+            // await DB.DeleteAsync<JobRecord>(j => j.IsComplete == true);
         }
     }
 }

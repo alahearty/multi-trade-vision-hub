@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaChartLine, FaUserTie, FaCogs, FaUsers, FaExchangeAlt, FaBullhorn } from 'react-icons/fa';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -8,6 +10,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,28 +20,24 @@ const Login: React.FC = () => {
       return;
     }
     setLoading(true);
+    
     try {
-      const res = await fetch('/members/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.errors?.[0]?.message || 'Invalid credentials.');
-        setLoading(false);
+      const response = await apiClient.login({ email, password });
+      
+      if (response.error) {
+        setError(response.error);
         return;
       }
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        memberId: data.memberId,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName
-      }));
-      navigate('/dashboard');
-      window.location.reload();
+      
+      if (response.data) {
+        login({
+          memberId: response.data.memberId,
+          email: response.data.email,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName
+        }, response.data.token);
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {

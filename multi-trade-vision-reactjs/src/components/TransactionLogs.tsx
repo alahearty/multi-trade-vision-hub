@@ -1,64 +1,46 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  TrendingUp, 
-  Percent,
-  Calendar,
-  DollarSign
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { apiClient, Transaction } from "@/lib/api";
 
-const allTransactions = [
-  {
-    id: "TXN001",
-    type: "deposit",
-    amount: "$500.00",
-    currency: "USD",
-    status: "completed",
-    date: "2024-01-15 14:30:22",
-    description: "Bank transfer deposit"
-  },
-  {
-    id: "TXN002",
-    type: "investment",
-    amount: "$1,000.00",
-    currency: "BTC",
-    status: "completed",
-    date: "2024-01-14 10:15:45",
-    description: "Bitcoin investment purchase"
-  },
-  {
-    id: "TXN003",
-    type: "withdrawal",
-    amount: "$200.00",
-    currency: "USD",
-    status: "pending",
-    date: "2024-01-13 16:20:10",
-    description: "Withdrawal to bank account"
-  },
-  {
-    id: "TXN004",
-    type: "interest",
-    amount: "$45.67",
-    currency: "USD",
-    status: "completed",
-    date: "2024-01-12 09:00:00",
-    description: "Monthly interest payment"
-  },
-];
+export const TransactionLogs = () => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
 
-const depositTransactions = allTransactions.filter(t => t.type === "deposit");
-const withdrawalTransactions = allTransactions.filter(t => t.type === "withdrawal");
-const investmentTransactions = allTransactions.filter(t => t.type === "investment");
-const interestTransactions = allTransactions.filter(t => t.type === "interest");
+  useEffect(() => {
+    fetchTransactions();
+  }, [currentPage]);
 
-const TransactionTable = ({ transactions, title, icon }: { 
-  transactions: typeof allTransactions, 
-  title: string,
-  icon: React.ReactNode 
-}) => {
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getTransactions(currentPage, pageSize);
+      
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+      
+      if (response.data) {
+        setTransactions(response.data.transactions);
+        setTotalCount(response.data.totalCount);
+        setTotalPages(Math.ceil(response.data.totalCount / pageSize));
+      }
+    } catch (err) {
+      setError('Failed to load transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -75,125 +57,149 @@ const TransactionTable = ({ transactions, title, icon }: {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "deposit":
-        return <ArrowUpCircle className="w-4 h-4 text-green-500" />;
+        return "💰";
       case "withdrawal":
-        return <ArrowDownCircle className="w-4 h-4 text-red-500" />;
+        return "💸";
       case "investment":
-        return <TrendingUp className="w-4 h-4 text-blue-500" />;
-      case "interest":
-        return <Percent className="w-4 h-4 text-purple-500" />;
+        return "📈";
       default:
-        return <DollarSign className="w-4 h-4" />;
+        return "💳";
     }
   };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-red-500 text-center py-8">{error}</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {icon}
-          {title}
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>Transaction History</CardTitle>
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        {transactions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No transactions found</p>
-            <p className="text-sm">Your {title.toLowerCase()} will appear here</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {transactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  {getTypeIcon(transaction.type)}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{transaction.id}</span>
+        {transactions.length > 0 ? (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span>{getTypeIcon(transaction.type)}</span>
+                        <span className="capitalize font-medium">{transaction.type}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(transaction.amount, transaction.currency)}
+                    </TableCell>
+                    <TableCell>
                       <Badge className={getStatusColor(transaction.status)}>
                         {transaction.status}
                       </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(transaction.createdAt)}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
                       {transaction.description}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {transaction.date}
-                    </div>
-                  </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} transactions
                 </div>
-                
-                <div className="text-right">
-                  <div className="font-semibold text-lg">
-                    {transaction.amount}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {transaction.currency}
-                  </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ))}
+            )}
+          </>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold mb-2">No Transactions Yet</h3>
+            <p className="text-sm">Your transaction history will appear here once you make your first deposit or investment.</p>
           </div>
         )}
       </CardContent>
     </Card>
-  );
-};
-
-export const TransactionLogs = () => {
-  return (
-    <Tabs defaultValue="all" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="all">All Transactions</TabsTrigger>
-        <TabsTrigger value="deposits">Deposits</TabsTrigger>
-        <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-        <TabsTrigger value="investments">Investments</TabsTrigger>
-        <TabsTrigger value="interest">Interest</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="all">
-        <TransactionTable 
-          transactions={allTransactions} 
-          title="All Transactions"
-          icon={<DollarSign className="w-5 h-5" />}
-        />
-      </TabsContent>
-      
-      <TabsContent value="deposits">
-        <TransactionTable 
-          transactions={depositTransactions} 
-          title="Deposit History"
-          icon={<ArrowUpCircle className="w-5 h-5" />}
-        />
-      </TabsContent>
-      
-      <TabsContent value="withdrawals">
-        <TransactionTable 
-          transactions={withdrawalTransactions} 
-          title="Withdrawal History"
-          icon={<ArrowDownCircle className="w-5 h-5" />}
-        />
-      </TabsContent>
-      
-      <TabsContent value="investments">
-        <TransactionTable 
-          transactions={investmentTransactions} 
-          title="Investment History"
-          icon={<TrendingUp className="w-5 h-5" />}
-        />
-      </TabsContent>
-      
-      <TabsContent value="interest">
-        <TransactionTable 
-          transactions={interestTransactions} 
-          title="Interest History"
-          icon={<Percent className="w-5 h-5" />}
-        />
-      </TabsContent>
-    </Tabs>
   );
 };

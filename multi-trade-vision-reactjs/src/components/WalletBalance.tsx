@@ -1,42 +1,48 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, TrendingUp, TrendingDown, Clock } from "lucide-react";
-
-const balanceData = {
-  total: "$24,567.89",
-  available: "$4,900.39",
-  pending: "$2,150.00",
-  invested: "$18,420.00"
-};
-
-const recentTransactions = [
-  {
-    id: 1,
-    type: "deposit",
-    amount: "$500.00",
-    currency: "USD",
-    status: "completed",
-    date: "2024-01-15"
-  },
-  {
-    id: 2,
-    type: "withdrawal",
-    amount: "$200.00",
-    currency: "USD",
-    status: "pending",
-    date: "2024-01-14"
-  },
-  {
-    id: 3,
-    type: "investment",
-    amount: "$1,000.00",
-    currency: "BTC",
-    status: "completed",
-    date: "2024-01-13"
-  }
-];
+import { apiClient, WalletBalance as WalletBalanceType, Transaction } from "@/lib/api";
 
 export const WalletBalance = () => {
+  const [balanceData, setBalanceData] = useState<WalletBalanceType | null>(null);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch wallet balance
+        const balanceResponse = await apiClient.getWalletBalance();
+        if (balanceResponse.error) {
+          setError(balanceResponse.error);
+          return;
+        }
+        
+        if (balanceResponse.data) {
+          setBalanceData(balanceResponse.data);
+        }
+        
+        // Fetch recent transactions
+        const transactionsResponse = await apiClient.getTransactions(1, 5);
+        if (transactionsResponse.error) {
+          console.error('Failed to fetch transactions:', transactionsResponse.error);
+        } else if (transactionsResponse.data) {
+          setRecentTransactions(transactionsResponse.data.transactions);
+        }
+      } catch (err) {
+        setError('Failed to load wallet data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -63,6 +69,53 @@ export const WalletBalance = () => {
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Wallet Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Wallet Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-red-500 text-sm">{error}</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -76,22 +129,30 @@ export const WalletBalance = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Total Balance</span>
-              <span className="text-xl font-bold">{balanceData.total}</span>
+              <span className="text-xl font-bold">
+                {balanceData ? formatCurrency(balanceData.totalBalance) : '$0.00'}
+              </span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Available</span>
-              <span className="font-semibold text-green-500">{balanceData.available}</span>
+              <span className="font-semibold text-green-500">
+                {balanceData ? formatCurrency(balanceData.availableBalance) : '$0.00'}
+              </span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Pending</span>
-              <span className="font-semibold text-yellow-500">{balanceData.pending}</span>
+              <span className="font-semibold text-yellow-500">
+                {balanceData ? formatCurrency(balanceData.pendingBalance) : '$0.00'}
+              </span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Invested</span>
-              <span className="font-semibold text-blue-500">{balanceData.invested}</span>
+              <span className="font-semibold text-blue-500">
+                {balanceData ? formatCurrency(balanceData.investedBalance) : '$0.00'}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -106,27 +167,35 @@ export const WalletBalance = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {getTypeIcon(transaction.type)}
-                  <div>
-                    <div className="font-medium capitalize">{transaction.type}</div>
-                    <div className="text-sm text-muted-foreground">{transaction.date}</div>
+            {recentTransactions.length > 0 ? (
+              recentTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {getTypeIcon(transaction.type)}
+                    <div>
+                      <div className="font-medium capitalize">{transaction.type}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(transaction.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="font-semibold">{formatCurrency(transaction.amount)}</div>
+                    <Badge className={getStatusColor(transaction.status)}>
+                      {transaction.status}
+                    </Badge>
                   </div>
                 </div>
-                
-                <div className="text-right">
-                  <div className="font-semibold">{transaction.amount}</div>
-                  <Badge className={getStatusColor(transaction.status)}>
-                    {transaction.status}
-                  </Badge>
-                </div>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                No recent transactions
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

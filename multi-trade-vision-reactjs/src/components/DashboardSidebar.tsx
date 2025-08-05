@@ -1,69 +1,86 @@
+import { NavLink } from "react-router-dom";
 import { 
-  LayoutDashboard, 
+  Home, 
   TrendingUp, 
   Wallet, 
+  FileText, 
   Users, 
-  FileText,
   Settings,
-LogOut
+  Shield,
+  Activity
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
-interface SidebarItem {
-  icon: any;
-  label: string;
-  path: string;
-}
-
-const sidebarItems: SidebarItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: TrendingUp, label: "Investments", path: "/dashboard/investments" },
-  { icon: Wallet, label: "Wallet", path: "/dashboard/wallet" },
-  { icon: Users, label: "Referrals", path: "/dashboard/referrals" },
-  { icon: FileText, label: "Transactions", path: "/dashboard/transactions" },
-  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
-];
-
-export function DashboardSidebar() {
-  const location = useLocation();
+export const DashboardSidebar = () => {
+  const { user } = useAuth();
   
+  // Check if user is admin (you can add admin role to user data)
+  const isAdmin = user?.email === "admin@multitradehub.com"; // Simple check for demo
+
+  const navItems = [
+    { to: "/dashboard", icon: Home, label: "Dashboard" },
+    { to: "/dashboard/investments", icon: TrendingUp, label: "Investments" },
+    { to: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
+    { to: "/dashboard/transactions", icon: FileText, label: "Transactions" },
+    { to: "/dashboard/referrals", icon: Users, label: "Referrals" },
+    { to: "/dashboard/settings", icon: Settings, label: "Settings" },
+  ];
+
+  const adminItems = [
+    { to: "/admin", icon: Shield, label: "Admin Panel" },
+    { to: "/admin/users", icon: Users, label: "User Management" },
+    { to: "/admin/transactions", icon: Activity, label: "Transaction Review" },
+  ];
+
   return (
-    <aside className="w-64 h-screen bg-card border-r border-border flex flex-col justify-between">
-      <div className="flex-1 flex flex-col">
-        <div className="p-6">
-          <div className="text-sm text-muted-foreground mb-6">NAVIGATION</div>
-          <nav className="space-y-2">
-            {sidebarItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Button
-                  key={item.label}
-                  variant={isActive ? "default" : "ghost"}
-                  className={cn(
-                    "w-full justify-start",
-                    isActive && "bg-primary text-primary-foreground"
-                  )}
-                  asChild
-                >
-                  <Link to={item.path}>
-                    <item.icon className="w-4 h-4 mr-3" />
-                    {item.label}
-                  </Link>
-                </Button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-      <div className="p-6 flex flex-col gap-4">
+    <aside className="w-64 bg-card border-r border-border min-h-screen">
+      <div className="p-6">
+        <h2 className="text-lg font-semibold mb-6">Navigation</h2>
         
-        <Button variant="ghost" className="w-full justify-start text-destructive">
-          <LogOut className="w-4 h-4 mr-3" />
-          Logout
-        </Button>
+        <nav className="space-y-2">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </NavLink>
+          ))}
+          
+          {isAdmin && (
+            <>
+              <div className="border-t border-border my-4"></div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 px-3">
+                ADMIN
+              </div>
+              {adminItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </>
+          )}
+        </nav>
       </div>
     </aside>
   );
-}
+};

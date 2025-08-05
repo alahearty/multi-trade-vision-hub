@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using multi_trade_vision_api;
 
 namespace Members.Signup

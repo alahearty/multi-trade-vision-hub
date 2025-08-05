@@ -2,7 +2,7 @@
 
 namespace multi_trade_vision_api.Tests
 {
-    public class App : AppFixture<Program>
+    internal class App : AppFixture<Program>
     {
         protected override void ConfigureApp(IWebHostBuilder a)
         {

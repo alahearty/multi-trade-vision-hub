@@ -1,4 +1,4 @@
-﻿using multi_trade_vision_api;
+using multi_trade_vision_api;
 using Microsoft.EntityFrameworkCore;
 
 namespace Members.Signup

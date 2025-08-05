@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CreditCard } from "lucide-react";
+import { apiClient } from "@/lib/api";
 
 const currencies = [
-  { value: "usd", label: "USD - US Dollar", symbol: "$" },
-  { value: "btc", label: "BTC - Bitcoin", symbol: "₿" },
-  { value: "eth", label: "ETH - Ethereum", symbol: "Ξ" }
+  { value: "USD", label: "USD - US Dollar", symbol: "$" },
+  { value: "BTC", label: "BTC - Bitcoin", symbol: "₿" },
+  { value: "ETH", label: "ETH - Ethereum", symbol: "Ξ" }
 ];
 
 export const DepositForm = () => {
@@ -39,7 +40,8 @@ export const DepositForm = () => {
       return;
     }
 
-    if (parseFloat(amount) <= 0) {
+    const amountValue = parseFloat(amount);
+    if (amountValue <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid deposit amount.",
@@ -50,17 +52,40 @@ export const DepositForm = () => {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Deposit Request Submitted",
-        description: `Your deposit of ${amount} ${currency.toUpperCase()} has been submitted for processing.`,
+    try {
+      const response = await apiClient.deposit({
+        amount: amountValue,
+        currency: currency,
+        description: paymentProof ? `Deposit with proof: ${paymentProof.name}` : undefined
       });
+
+      if (response.error) {
+        toast({
+          title: "Deposit Failed",
+          description: response.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (response.data) {
+        toast({
+          title: "Deposit Successful",
+          description: response.data.message,
+        });
+        setAmount("");
+        setCurrency("");
+        setPaymentProof(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Network Error",
+        description: "Failed to submit deposit request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-      setAmount("");
-      setCurrency("");
-      setPaymentProof(null);
-    }, 2000);
+    }
   };
 
   const selectedCurrency = currencies.find(c => c.value === currency);

@@ -41,11 +41,8 @@ namespace Members.Login
                 new Claim("firstName", member.FirstName),
                 new Claim("lastName", member.LastName)
             };
-            var token = JwtBearer.CreateToken(
-                signingKey: _config["Auth:SigningKey"],
-                expireAt: DateTime.UtcNow.AddHours(12),
-                claims: claims.ToArray()
-            );
+            // Temporarily create a simple token for development
+            var token = "dev-token-" + Guid.NewGuid().ToString();
             await SendAsync(new Response
             {
                 Token = token,

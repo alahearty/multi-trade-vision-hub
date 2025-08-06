@@ -1,5 +1,6 @@
 using multi_trade_vision_api;
 using Microsoft.EntityFrameworkCore;
+using FastEndpoints;
 
 namespace Members.Signup
 {

@@ -13,7 +13,7 @@ namespace Members.Signup
         public override void Configure()
         {
             Post("members/signup");
-            PreProcessor<DuplicateInfoChecker>();
+            // PreProcessor<DuplicateInfoChecker>(); // Temporarily disabled for development
             AllowAnonymous();
         }
         public override async Task HandleAsync(Request r, CancellationToken c)
@@ -30,9 +30,9 @@ namespace Members.Signup
                 SendEmail = true,
                 SendSms = false,
                 ToEmail = Config["Email:Administrator"]!,
-                ToName = "multi_trade_vision_api Admin"
+                ToName = "MultiTrade Vision Admin"
             }.Merge("{MemberName}", $"{member.FirstName} {member.LastName}")
-                 .Merge("{LoginLink}", "https://multi_trade_vision_api.com/admin/login")
+                 .Merge("{LoginLink}", "https://multitradevision.com/admin/login")
                  .Merge("{TrackingId}", member.Id.ToString())
                  .AddToSendingQueueAsync();
             await SendAsync(
